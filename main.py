@@ -51,8 +51,8 @@ def subscribe(client: mqtt_client):
         print(total)
 
     client.subscribe([
-         (BASE_TOPIC + SHELLY_2 + "emeter/+/total", 0),
          (BASE_TOPIC + SHELLY_1 + "emeter/+/total", 0),
+         (BASE_TOPIC + SHELLY_2 + "emeter/+/total", 0),
      ])
     client.on_message = on_message
 
