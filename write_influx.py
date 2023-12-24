@@ -21,4 +21,4 @@ def send_data(value):
     .tag("energia", "energia")
     .field("energia", value)
     )
-    write_api.write(bucket=bucket, org="lst", record=point)
+    write_api.write(bucket=bucket, org=org, record=point)
