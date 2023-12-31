@@ -1,64 +1,59 @@
-from paho.mqtt import client as mqtt_client
-from dotenv import load_dotenv
+from mqtt_conf import MQTTLogic
+from write_influx import InfluxLogic
+from queue import Queue
+from threading import Lock
 from os import getenv
-from datetime import datetime
-from write_influx import send_data
+from dotenv import load_dotenv
 
 load_dotenv()
 
-USERNAME = getenv("MQTT_USER")
-PASSWORD = getenv("MQTT_PASS")
-BROKER = getenv("MQTT_BROKER")
-PORT = int(getenv("MQTT_PORT"))
-BASE_TOPIC = getenv("MQTT_BASE_TOPIC")
-SHELLY_1 = getenv("SHELLY_1")
-SHELLY_2 = getenv("SHELLY_2")
+mqtt_broker = getenv("MQTT_BROKER")
+mqtt_port = int(getenv("MQTT_PORT"))
+mqtt_usr = getenv("MQTT_USER")
+mqtt_pass  = getenv("MQTT_PASS")
+mqtt_topics = [
+    ("shellies/shellyem3-485519DC84EC/emeter/0/total", 0),
+    ("shellies/shellyem3-485519DC84EC/emeter/1/total", 0),
+    ("shellies/shellyem3-485519DC84EC/emeter/2/total", 0),
+    ("shellies/shellyem3-C45BBE5FD50D/emeter/0/total", 0),
+    ("shellies/shellyem3-C45BBE5FD50D/emeter/1/total", 0),
+    ("shellies/shellyem3-C45BBE5FD50D/emeter/2/total", 0),
+]
 
-devices = {"shellyem3-485519DC84EC": 0, "shellyem3-C45BBE5FD50D": 0}
-count = 0
-total = 0.0
+influx_token = getenv("INFLUX_TOKEN")
+influx_url = getenv("INFLUX_URL")
+influx_org = getenv("INFLUX_ORG")
+influx_bucket = getenv("INFLUX_BUCKET")
 
-def connect_mqtt() -> mqtt_client:
-    def on_connect(client, usedata, flags, rc):
-        if rc == 0:
-            print('Conectado a Broker MQTT')
-        else:
-            print('La conexion al Broker ha fallado')
+sum_queue = Queue()
+sum_lock = Lock()
 
-    client = mqtt_client.Client("consumoAC_id")
-    client.username_pw_set(USERNAME, PASSWORD)
-    client.on_connect = on_connect
-    client.connect(BROKER, PORT)
-    return client
+def on_message(client, userdata, msg):
+    topic = msg.topic
+    value = float(msg.payload)
+    print(f"Received {topic}: {value}")
 
-def subscribe(client: mqtt_client):
-    def on_message(client, userdata, msg):
-        global count
-        global devices
-        global total
-        device = msg.topic.split("/")[1]
-        if count < 6:
-            devices[device] += float(msg.payload.decode())
-            total += float(msg.payload.decode())
-        else:
-            # Llama a send_data(total) antes de reiniciar total y count
-            send_data(total)
-            count = 0
-            total = 0
-            devices = {"shellyem3-485519DC84EC": 0, "shellyem3-C45BBE5FD50D": 0}
+    with sum_lock:
+        sum_queue.put(value)
 
-        count += 1
-        print(total)
+mqtt_module = MQTTLogic(mqtt_broker, mqtt_port, mqtt_topics, on_message, mqtt_usr, mqtt_pass)
+influx_module = InfluxLogic(influx_url, influx_token, influx_org, influx_bucket)
 
-    client.subscribe([
-         (BASE_TOPIC + SHELLY_1 + "emeter/+/total", 0),
-         (BASE_TOPIC + SHELLY_2 + "emeter/+/total", 0),
-     ])
-    client.on_message = on_message
+mqtt_module.connect()
+mqtt_module.start_loop()
 
-def run_client():
-    client = connect_mqtt()
-    subscribe(client)
-    client.loop_forever()
+try:
+    while True:
+        while sum_queue.qsize() < len(mqtt_topics):
+            pass
+        with sum_lock:
+            total_sum = sum(sum_queue.queue)
 
-run_client()
+        influx_module.write_data(total_sum)
+        sum_queue.queue.clear()
+
+except KeyboardInterrupt:
+    pass
+finally:
+    mqtt_module.disconnect()
+    influx_module.close()

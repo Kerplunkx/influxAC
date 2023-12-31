@@ -1,24 +1,21 @@
-import influxdb_client,  time
-from influxdb_client import InfluxDBClient, Point, WritePrecision
-from influxdb_client.client.write_api import SYNCHRONOUS
-from os import getenv
-from dotenv import load_dotenv
+from influxdb_client import InfluxDBClient, Point
+from datetime import datetime
 
-load_dotenv()
+class InfluxLogic:
+    def __init__(self, url, token, org, bucket):
+        self.client = InfluxDBClient(url=url, token=token, org=org)
+        self.bucket = bucket
+        self.org = org
+        self.token = token
+        self.write_api = self.client.write_api()
 
-token = getenv("INFLUXDB_TOKEN")
-org = getenv("INFLUX_ORG")
-url = getenv("INFLUX_URL")
-bucket = getenv("INFLUX_BUCKET")
+    def write_data(self, total_sum):
+        point = (
+            Point("energia_total")
+            .tag("energia", "energia")
+            .field("energia", total_sum)
+        )
+        self.write_api.write(bucket=self.bucket, org=self.org, record=point)
 
-write_client = influxdb_client.InfluxDBClient(url=url, token=token, org=org)
-
-write_api = write_client.write_api(write_options=SYNCHRONOUS)
-   
-def send_data(value):
-    point = (
-    Point("energia_total")
-    .tag("energia", "energia")
-    .field("energia", value)
-    )
-    write_api.write(bucket=bucket, org=org, record=point)
+    def close(self):
+        self.client.close()
