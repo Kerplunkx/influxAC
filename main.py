@@ -12,12 +12,12 @@ mqtt_port = int(getenv("MQTT_PORT"))
 mqtt_usr = getenv("MQTT_USER")
 mqtt_pass  = getenv("MQTT_PASS")
 mqtt_topics = [
-    ("shellies/shellyem3-485519DC84EC/emeter/0/total", 0),
-    ("shellies/shellyem3-485519DC84EC/emeter/1/total", 0),
-    ("shellies/shellyem3-485519DC84EC/emeter/2/total", 0),
-    ("shellies/shellyem3-C45BBE5FD50D/emeter/0/total", 0),
-    ("shellies/shellyem3-C45BBE5FD50D/emeter/1/total", 0),
-    ("shellies/shellyem3-C45BBE5FD50D/emeter/2/total", 0),
+    ("shellies/shellyem3-485519DC84EC/emeter/0/power", 0),
+    ("shellies/shellyem3-485519DC84EC/emeter/1/power", 0),
+    ("shellies/shellyem3-485519DC84EC/emeter/2/power", 0),
+    ("shellies/shellyem3-C45BBE5FD50D/emeter/0/power", 0),
+    ("shellies/shellyem3-C45BBE5FD50D/emeter/1/power", 0),
+    ("shellies/shellyem3-C45BBE5FD50D/emeter/2/power", 0),
 ]
 
 influx_token = getenv("INFLUX_TOKEN")
