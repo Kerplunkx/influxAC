@@ -11,9 +11,9 @@ class InfluxLogic:
 
     def write_data(self, total_sum):
         point = (
-            Point("potencia")
-            .tag("potencia", "potencia")
-            .field("potencia", total_sum)
+            Point("energia")
+            .tag("energia", "energia")
+            .field("energia", total_sum * 0.017)
         )
         self.write_api.write(bucket=self.bucket, org=self.org, record=point)
 
